@@ -4,6 +4,7 @@ import torch
 import cv2
 
 DEVICE = "cpu"
+SCREEN_CENTER = (320, 240)
 
 model = detection.ssdlite320_mobilenet_v3_large(pretrained=True, progress=True,
 	num_classes=91, pretrained_backbone=True).to(DEVICE)
@@ -34,3 +35,25 @@ def process_data(output, frame):
             detect_coords.append([startX, startY, endX, endY])
 
     return detect_coords
+
+def compute_dev(results):
+    curr_max_size = 0
+    res_i = 0
+    for i, result in enumerate(results):
+        (startX, startY, endX, endY) = result
+        res_size = abs(endX - startX) * abs(endY - startY)
+        if curr_max_size < res_size:
+            curr_max_size = res_size
+
+        res_i = i
+
+    (startX, startY, endX, endY) = results[res_i] #unpack right person to follow
+    
+    #compute center
+    y, x = abs(endX - startX) / 2 + startX, abs(endY - startY) / 2 + startY
+
+    #compute deviation
+    y_dev = y - SCREEN_CENTER[0]
+    x_dev = x - SCREEN_CENTER[1]
+
+    return y_dev, x_dev

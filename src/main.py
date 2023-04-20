@@ -1,24 +1,48 @@
-from torchvision.models import detection
-from torchvision import transforms
-import torch
-import cv2
+import time, cv2
+import matplotlib.pyplot as plt
+from threading import Thread
+from queue import Queue
+from djitellopy import Tello
+import threading
+import logging
 
-#my imports
-from pretrained import model, convert_to_tensor, process_data
+from pretrained import model, convert_to_tensor, process_data, compute_dev
 
-vid = cv2.VideoCapture(0)
-  
-while(True):
-    ret, frame = vid.read()
-    torch_tensor = convert_to_tensor(frame)
+tello = Tello()
+tello.LOGGER.setLevel(logging.DEBUG)
 
-    output = model(torch_tensor)
-    result = process_data(output, frame)
-    
-    print(result)
-    cv2.imshow('frame', frame)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+time.sleep(3)
+tello.connect()
+tello.streamon()
+frame_read = tello.get_frame_read()
+deviation = None
 
-vid.release()
-cv2.destroyAllWindows()
+def videoRecorder():
+    while run:
+        image = frame_read.frame
+
+        torch_tensor = convert_to_tensor(image)
+
+        output = model(torch_tensor)
+        result = process_data(output, image)
+        y_dev, x_dev = compute_dev(result)
+
+
+        cv2.imshow("output_drone", image)
+        if cv2.waitKey(1) == ord('q'):
+            run = False
+            break
+
+tello.streamon()
+
+recorder = Thread(target=videoRecorder)
+recorder.start()
+
+
+tello.takeoff()
+"""
+tello.rotate_counter_clockwise(360)
+tello.land()
+keepRecording = False
+recorder.join()
+"""
