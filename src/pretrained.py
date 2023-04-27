@@ -36,7 +36,7 @@ def process_data(output, frame):
 
     return detect_coords
 
-def compute_dev(results):
+def compute_dev(results, frame):
     curr_max_size = 0
     res_i = 0
     for i, result in enumerate(results):
@@ -47,13 +47,20 @@ def compute_dev(results):
 
         res_i = i
 
+
     (startX, startY, endX, endY) = results[res_i] #unpack right person to follow
     
+    area = abs(startX - endX) * abs(startY - endY)
+    area_max = (2 * SCREEN_CENTER[0]) * (2 * SCREEN_CENTER[1])
+    
+    area_used = round(area / area_max, 2)
+
     #compute center
-    y, x = abs(endX - startX) / 2 + startX, abs(endY - startY) / 2 + startY
+    y, x = int(abs(endX - startX) / 2 + startX), int(abs(endY - startY) / 2 + startY)
+    cv2.circle(frame, (y, x), 3, (0, 0, 255), 3)
 
     #compute deviation
     y_dev = y - SCREEN_CENTER[0]
     x_dev = x - SCREEN_CENTER[1]
 
-    return y_dev, x_dev
+    return y_dev, x_dev, area_used
