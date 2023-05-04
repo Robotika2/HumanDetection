@@ -21,18 +21,18 @@ frame_read = tello.get_frame_read()
 def Convert_to_Instructions(y_deviation, x_deviation, ob_area):
     #recompute to linear scale (lol)
 
-    if x_deviation > 0.8:
+    if abs(x_deviation) > 0.25:
         #compute rotation
-        in1 = ["rotate", int(round(abs(x_deviation - 0.5) * 90))]
+        in1 = ["rotate", int(round(x_deviation * 45))]
     else:
         in1 = []
 
     if ob_area > 0.8:
         #compute baackward shift
-        in2 = ["backward", 20]
+        in2 = ["backward", 50]
     else:
         #compute forward shift
-        in2 = ["forward", int(round(ob_area * 200))]
+        in2 = ["forward", 20 if int(round(ob_area * 100)) <= 20 else int(round(ob_area * 100))]
 
     return [in2, in1]
 
@@ -55,8 +55,8 @@ def videoRecorder():
         x_dev = round(x_dev / SCREEN_CENTER[1], 2)
 
         instruction = Convert_to_Instructions(y_dev, x_dev, area)
-        print("IN:")
-        print(instruction)
+        #print("IN:")
+        #print(instruction)
 
         instructions.put(instruction)
 
@@ -70,9 +70,11 @@ def process_instructions():
         with instructions.mutex:
             instructions.queue.clear()
 
+        time.sleep(0.1)
+
         if len(instruction) == 0:
             continue
-
+    
         if instruction[0][0] == "forward":
             tello.move_forward(instruction[0][1])
         else:
@@ -82,14 +84,14 @@ def process_instructions():
         if instruction[0] == "up-down":
             pass #TODO: dodělat!
         """
-        if len(instruction[1]) == 0:
+        if len(instruction[1]) != 0:
             if instruction[1][0] == "rotate":
-                if instruction[1][1] <= 0:
+                if instruction[1][1] >= 0:
                     #left
-                    tello.rotate_counter_clockwise(instruction[1][1])
+                    tello.rotate_clockwise(instruction[1][1])
                 else:
                     #right
-                    tello.rotate_clockwise(instruction[1][1])
+                    tello.rotate_counter_clockwise(instruction[1][1])
             
             else:
                 pass
