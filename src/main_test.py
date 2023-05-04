@@ -7,15 +7,15 @@ import logging
 
 from pretrained import model, convert_to_tensor, process_data, compute_dev, SCREEN_CENTER
 
-tello = Tello()
+#tello = Tello()
 #tello.LOGGER.setLevel(logging.DEBUG)
 
 instructions = Queue()
 
-time.sleep(3)
-tello.connect()
-tello.streamon()
-frame_read = tello.get_frame_read()
+frame_read = cv2.VideoCapture(0)
+#tello.connect()
+#tello.streamon()
+#frame_read = tello.get_frame_read()
 
 #functions
 def Convert_to_Instructions(y_deviation, x_deviation, ob_area):
@@ -23,23 +23,25 @@ def Convert_to_Instructions(y_deviation, x_deviation, ob_area):
 
     if x_deviation > 0.4:
         #compute rotation
-        return ["rotate", int(round(x_deviation * 90))]
+        return ["rotate", x_deviation * 90]
 
     if ob_area > 0.8:
         #compute baackward shift
         return ["backward", 20]
     else:
         #compute forward shift
-        return ["forward", int(round(ob_area * 200))]
+        return ["forward", ob_area * 200]
 
 def stop_drone():
-    tello.land()
-    instructor.join()
-    exit(1)
+    #tello.land()
+    recorder.join()
+
+    frame_read.release()
+    # Destroy all the windows
+    cv2.destroyAllWindows()
 
 def videoRecorder():
-    image = frame_read.frame
-
+    ret, image = frame_read.read()
     torch_tensor = convert_to_tensor(image)
 
     output = model(torch_tensor)
@@ -49,6 +51,8 @@ def videoRecorder():
 
         y_dev = round(y_dev / SCREEN_CENTER[0], 2)
         x_dev = round(x_dev / SCREEN_CENTER[1], 2)
+
+        print(y_dev, x_dev, area)
 
         instruction = Convert_to_Instructions(y_dev, x_dev, area)
         instructions.put(instruction)
@@ -64,33 +68,28 @@ def process_instructions():
             continue
 
         if instruction[0] == "forward":
-            tello.move_forward(instruction[1])
+            print("forward")
         elif instruction[0] == "backward":
-            tello.move_back(instruction[1])
+            print("backward")
         elif instruction[0] == "left":
-            tello.move_left(instruction[1])
+            print("left")
         elif instruction[0] == "right":
-            tello.move_right(instruction[1])
+            print("right")
         elif instruction[0] == "up-down":
             pass #TODO: dodělat!
         elif instruction[0] == "rotate":
-            if instruction[1] <= 0:
+            if instruction <= 0:
                 #left
-                tello.rotate_counter_clockwise(instruction[1])
+                print("rotate left")
             else:
                 #right
-                tello.rotate_clockwise(instruction[1])
+                print("rotate right")
         
         else:
             pass
 
-        print(instruction[0])
-
 instructor = Thread(target=process_instructions)
 instructor.start()
-
-tello.takeoff()
-tello.move_up(100)
 
 while True:
     videoRecorder()
