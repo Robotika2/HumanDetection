@@ -21,16 +21,20 @@ frame_read = tello.get_frame_read()
 def Convert_to_Instructions(y_deviation, x_deviation, ob_area):
     #recompute to linear scale (lol)
 
-    if x_deviation > 0.4:
+    if x_deviation > 0.8:
         #compute rotation
-        return ["rotate", int(round(x_deviation * 90))]
+        in1 = ["rotate", int(round(abs(x_deviation - 0.5) * 90))]
+    else:
+        in1 = []
 
     if ob_area > 0.8:
         #compute baackward shift
-        return ["backward", 20]
+        in2 = ["backward", 20]
     else:
         #compute forward shift
-        return ["forward", int(round(ob_area * 200))]
+        in2 = ["forward", int(round(ob_area * 200))]
+
+    return [in2, in1]
 
 def stop_drone():
     tello.land()
@@ -51,6 +55,9 @@ def videoRecorder():
         x_dev = round(x_dev / SCREEN_CENTER[1], 2)
 
         instruction = Convert_to_Instructions(y_dev, x_dev, area)
+        print("IN:")
+        print(instruction)
+
         instructions.put(instruction)
 
     cv2.imshow("output_drone", image)
@@ -60,31 +67,35 @@ def videoRecorder():
 def process_instructions():
     while True: #i hate this
         instruction = instructions.get()
+        with instructions.mutex:
+            instructions.queue.clear()
+
         if len(instruction) == 0:
             continue
 
-        if instruction[0] == "forward":
-            tello.move_forward(instruction[1])
-        elif instruction[0] == "backward":
-            tello.move_back(instruction[1])
-        elif instruction[0] == "left":
-            tello.move_left(instruction[1])
-        elif instruction[0] == "right":
-            tello.move_right(instruction[1])
-        elif instruction[0] == "up-down":
-            pass #TODO: dodělat!
-        elif instruction[0] == "rotate":
-            if instruction[1] <= 0:
-                #left
-                tello.rotate_counter_clockwise(instruction[1])
-            else:
-                #right
-                tello.rotate_clockwise(instruction[1])
-        
+        if instruction[0][0] == "forward":
+            tello.move_forward(instruction[0][1])
         else:
-            pass
+            tello.move_back(instruction[0][1])
 
-        print(instruction[0])
+        """
+        if instruction[0] == "up-down":
+            pass #TODO: dodělat!
+        """
+        if len(instruction[1]) == 0:
+            if instruction[1][0] == "rotate":
+                if instruction[1][1] <= 0:
+                    #left
+                    tello.rotate_counter_clockwise(instruction[1][1])
+                else:
+                    #right
+                    tello.rotate_clockwise(instruction[1][1])
+            
+            else:
+                pass
+
+        print("OUT:")
+        print(instruction)
 
 instructor = Thread(target=process_instructions)
 instructor.start()
