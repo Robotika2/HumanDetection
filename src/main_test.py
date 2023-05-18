@@ -34,7 +34,6 @@ def Convert_to_Instructions(y_deviation, x_deviation, ob_area):
 
 def stop_drone():
     #tello.land()
-    recorder.join()
 
     frame_read.release()
     # Destroy all the windows

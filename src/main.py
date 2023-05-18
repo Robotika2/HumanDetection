@@ -3,12 +3,10 @@ import matplotlib.pyplot as plt
 from threading import Thread
 from queue import Queue
 from djitellopy import Tello
-import logging
 
 from pretrained import model, convert_to_tensor, process_data, compute_dev, SCREEN_CENTER
 
 tello = Tello()
-#tello.LOGGER.setLevel(logging.DEBUG)
 
 instructions = Queue()
 
@@ -32,7 +30,7 @@ def Convert_to_Instructions(y_deviation, x_deviation, ob_area):
         in2 = ["backward", 50]
     else:
         #compute forward shift
-        in2 = ["forward", 20 if int(round(ob_area * 100)) <= 20 else int(round(ob_area * 100))]
+        in2 = ["forward", 20 if int(round(ob_area * 50)) <= 20 else int(round(ob_area * 50))]
 
     return [in2, in1]
 
@@ -76,9 +74,9 @@ def process_instructions():
             continue
     
         if instruction[0][0] == "forward":
-            tello.move_forward(instruction[0][1])
+            tello.send_rc_control(0, instruction[0][1], 0, 0)
         else:
-            tello.move_back(instruction[0][1])
+            tello.send_rc_control(0, -instruction[0][1], 0, 0)
 
         """
         if instruction[0] == "up-down":
