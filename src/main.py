@@ -21,7 +21,7 @@ def Convert_to_Instructions(y_deviation, x_deviation, ob_area):
 
     if abs(x_deviation) > 0.25:
         #compute rotation
-        in1 = ["rotate", int(round(x_deviation * 45))]
+        in1 = ["rotate", int(round(x_deviation * 12))]
     else:
         in1 = []
 
@@ -57,6 +57,8 @@ def videoRecorder():
         #print(instruction)
 
         instructions.put(instruction)
+    else:
+        instructions.put([[], ["rotate", 25]])
 
     cv2.imshow("output_drone", image)
     if cv2.waitKey(1) == ord('q'):
@@ -69,19 +71,21 @@ def process_instructions():
             instructions.queue.clear()
 
         time.sleep(0.1)
+        print(instruction)
 
-        if len(instruction) == 0:
-            continue
+        if instruction[0] == "None":
+            tello.rotate_clockwise(25)
     
         if instruction[0][0] == "forward":
             tello.send_rc_control(0, instruction[0][1], 0, 0)
-        else:
+        elif instruction[0][0] == "backward":
             tello.send_rc_control(0, -instruction[0][1], 0, 0)
 
         """
         if instruction[0] == "up-down":
             pass #TODO: dodělat!
         """
+
         if len(instruction[1]) != 0:
             if instruction[1][0] == "rotate":
                 if instruction[1][1] >= 0:
